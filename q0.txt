@@ -1,0 +1,12 @@
+# Write a query to find all lakes located in the Jasper National Park.
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX dbr: <http://dbpedia.org/resource/>
+SELECT * WHERE {
+  { ?lake dbp:location dbr:Jasper_National_Park }
+    UNION
+  { ?lake dbo:location dbr:Jasper_National_Park } .
+  ?lake rdf:type dbo:Lake
+} 
