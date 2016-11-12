@@ -1,0 +1,23 @@
+# write a query to find the number of South American soccer players who (appear in Wikipedia)
+# and have played for a club in the Spanish "La Liga” that has never been relegated, grouping by country.
+
+# Check if we have to link a player to their wikipedia page?
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX db: <http://dbpedia.org/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbr: <http://dbpedia.org/resource/>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX w3: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX dbyago: <http://dbpedia.org/class/yago/>
+PREFIX wiki: <http://en.wikipedia.org/wiki/>
+
+SELECT ?country (COUNT(?player) AS ?numPlayer) WHERE {
+  ?club dbp:league dbr:La_Liga ;
+        rdf:type dbo:SportsTeam ;
+        rdf:type dbyago:WikicatUnrelegatedAssociationFootballClubs .
+  ?player dbp:clubs ?club ;
+          dbo:birthPlace ?country .
+  ?country w3:seeAlso dbr:South_America .
+}
+GROUP BY ?country
