@@ -1,0 +1,16 @@
+# In a plain text ASCII file called q1.txt write a query to find which are the # stadiums used by Italian soccer teams. Have the team and the stadium in the # # output. If available, output the capacity of the stadium as well.
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX dbr: <http://dbpedia.org/resource/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX dbc: <http://dbpedia.org/resource/Category:>
+
+SELECT * WHERE {
+  ?teams dct:subject dbc:Football_clubs_in_Italy .
+  ?teams dbo:ground ?stadium .
+  ?stadium rdf:type dbo:Stadium .
+  OPTIONAL
+  {?stadium dbp:capacity ?capacity}
+} 
