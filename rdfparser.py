@@ -1,18 +1,35 @@
-import re
-import shlex
+# Copyright 2016 Kieter Philip L. Balisnomo, Bennett Hreherchuk
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+''' INFO
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+    rdfparser 
+    
+    Expectations:
+        Each token is separated by at least one space or .split()-able 
+        character.
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+'''
+
+import re 
+import shlex   
 from urllib.parse import urlparse
 
+# A dictionary that maps "prefixKey:" to "URIvalue"
 prefixDict = {}
+# each element in tripleList is a three element array containing a RDF triple
 tripleList = []
-base = ""
-
-'''
-rdfparser handles triples using a state machine on whitespace separated elements of a .ttl file.
-
-Currently handles:
-    Basic prefix mapping 
-
-'''
 
 def createRDFtuple( curSubject, curPredicate, curObject ):
     global tripleList
@@ -21,18 +38,25 @@ def createRDFtuple( curSubject, curPredicate, curObject ):
                          curObject ] )
     print( "NEW TRIPLE:", tripleList[-1] )
 
+
 # http://stackoverflow.com/questions/15175142/how-can-i-do-multiple-substitutions-using-regex-in-python
 def multiple_replace(dict, text):
-  # Create a regular expression  from the dictionary keys
-  regex = re.compile("(%s)" % "|".join(map(re.escape, dict.keys())))
+    # Create a regular expression  from the dictionary keys
+    regex = re.compile("(%s)" % "|".join(map(re.escape, dict.keys())))
 
-  # For each match, look-up corresponding value in dictionary
-  return regex.sub(lambda mo: dict[mo.string[mo.start():mo.end()]], text) 
+    # For each match, look-up corresponding value in dictionary
+    return regex.sub(lambda mo: dict[mo.string[mo.start():mo.end()]], text) 
+
 
 def parseRDF( rdfFile ):
     global prefixDict
-    global base
+    
+    # The @base or BASE defined URI
+    base = ""
+    
+    # The line number of the parsed file
     lineNum = 0
+    
     for line in rdfFile:
         lineNum += 1
         line = line.strip()
@@ -41,7 +65,9 @@ def parseRDF( rdfFile ):
         
         print( "LINE:", line )
         
+        # Match any @prefix, PREFIX, @base, BASE and grab their values (case insensitive)
         if re.match( "@prefix|@base|base|prefix", line, re.IGNORECASE ):
+            # match @prefix declaration
             matchObj = re.match( "^@prefix ([^_]*:).*<(.*)> . *$", line,  re.IGNORECASE )
             if matchObj:
                 key = matchObj.group(1)
@@ -49,8 +75,9 @@ def parseRDF( rdfFile ):
                 prefixDict[key] = value
                 print( "HANDLE PREFIX:", line )
                 print( "PREFIX:", key, "VALUE:", value )
-                continue
+                continue # continue to the next line
             
+            # match PREFIX declaration
             matchObj = re.match( "^PREFIX ([^_]*:).*<(.*)> *$", line, re.IGNORECASE )
             if matchObj:
                 key = matchObj.group(1)
@@ -58,23 +85,25 @@ def parseRDF( rdfFile ):
                 prefixDict[key] = value
                 print( "HANDLE PREFIX:", line )
                 print( "PREFIX:", key, "VALUE:", value )
-                continue
+                continue # continue to the next line
             
+            # match @base declaration
             matchObj = re.match( "^@base <(.*)> . *$", line, re.IGNORECASE )
             if matchObj:
                 print( "HANDLE BASE:", line )
                 base = matchObj.group(1)
                 print( "BASE IS NOW:", base )
-                continue
+                continue # continue to the next line
             
+            # match BASE declaration
             matchObj = re.match( "^BASE <(.*)> *$", line, re.IGNORECASE )        
             if matchObj:
                 print( "HANDLE BASE:", line )
                 base = matchObj.group(1)
                 print( "BASE IS NOW:", base )
-                continue
+                continue # continue to the next line
                 
-            # reached end without parsing any :(
+            # reached end without parsing any definition properly
             print( "ERROR: prefix or base match failure on line", lineNum )
             exit(1)
             
