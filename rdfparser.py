@@ -3,6 +3,7 @@ import shlex
 
 prefixDict = {}
 tripleList = []
+base = ""
 
 '''
 rdfparser handles triples using a state machine on whitespace separated elements of a .ttl file.
@@ -29,34 +30,52 @@ def multiple_replace(dict, text):
 
 def parseRDF( rdfFile ):
     global prefixDict
+    global base
     lineNum = 0
     for line in rdfFile:
         lineNum += 1
+        line = line.strip()
         
         print( "\n" * 3 )
         
         print( "LINE:", line )
         
-        ''' DO WE NEED TO CONSIDER COMMENT LINES? '''
-        
-        # Check if the line defines a prefix
-        if re.match( "@prefix", line, re.IGNORECASE ):
-            # Use regex to group the values and store them as a key:value pair
-            matchObj = re.match( "@prefix ?([^_]*:).*<(.*)> .", line )
+        if re.match( "@prefix|@base|base|prefix", line, re.IGNORECASE ):
+            matchObj = re.match( "^@prefix ([^_]*:).*<(.*)> . ?$", line,  re.IGNORECASE )
             if matchObj:
-                key = matchObj.group(1) 
-                value = matchObj.group(2) 
-                if key in prefixDict:
-                    # If the prefix is already defined, print a warning
-                    print( "Warning: prefix redefined on line", lineNum )
-                print( "PREFIX ADDED key:", key, "value:", value )
+                key = matchObj.group(1)
+                value = matchObj.group(2)
                 prefixDict[key] = value
-            else:
-                # if we reach here we failed to match the expected prefix format.
-                print( "Error: prefix match failure on line", lineNum )
-                exit(1)
-            continue; # Continue to the next line
-        
+                #print( "HANDLE PREFIX:", line )
+                #print( "PREFIX:", key, "VALUE:", value )
+                continue
+            
+            matchObj = re.match( "^PREFIX ([^_]*:).*<(.*)> $", line, re.IGNORECASE )
+            if matchObj:
+                key = matchObj.group(1)
+                value = matchObj.group(2)
+                prefixDict[key] = value
+                #print( "HANDLE PREFIX:", line )
+                #print( "PREFIX:", key, "VALUE:", value )
+                continue
+            
+            matchObj = re.match( "^@base <(.*)> . $", line, re.IGNORECASE )
+            if matchObj:
+                #print( "HANDLE BASE:", line )
+                base = matchObj.group(1)
+                continue
+            
+            matchObj = re.match( "^BASE <(.*)> $", line, re.IGNORECASE )        
+            if matchObj:
+                #print( "HANDLE BASE:", line )
+                base = matchObj.group(1)
+                continue
+                
+            # reached end without parsing any :(
+            print( "ERROR: prefix or base match failure on line", lineNum )
+            exit(1)
+            
+        # DO WE NEED? OR ON EACH ELEMENT?
         line = multiple_replace(prefixDict, line)
         
         split = shlex.split(line) 
@@ -67,9 +86,11 @@ def parseRDF( rdfFile ):
     
     # print out some statistics about the parsing.
     global tripleList
+    
+    print()
     print( "found", len(tripleList), "triples, and", len( prefixDict), "prefixes" )
     print( "file had", lineNum, "lines" )
-    print( "potentially missed:", len(tripleList) + len(prefixDict) - lineNum )
+    print( "potentially missed:", lineNum - (len(tripleList) + len(prefixDict)) )
         
 # curState = The last read element (hence we start on 0)
 STATE_SUBJECT = 1
@@ -96,7 +117,7 @@ def tripleStateMachine( currentElem, lineNum ):
     elif curState == STATE_SUBJECT or curState == STATE_SEMICOLON:
         checkForEnding( currentElem, lineNum )
         if currentElem == "a":
-            curPred = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+            curPred = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
         else:
             curPred = currentElem
         curState = STATE_PREDICATE
