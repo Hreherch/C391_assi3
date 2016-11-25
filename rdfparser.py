@@ -1,5 +1,6 @@
 import re
 import shlex
+from urllib.parse import urlparse
 
 prefixDict = {}
 tripleList = []
@@ -15,9 +16,9 @@ Currently handles:
 
 def createRDFtuple( curSubject, curPredicate, curObject ):
     global tripleList
-    tripleList.append( ["<" + curSubject + ">", 
-                        "<" + curPredicate + ">",
-                        "<" + curObject + ">"] )
+    tripleList.append( [ curSubject, 
+                         curPredicate,
+                         curObject ] )
     print( "NEW TRIPLE:", tripleList[-1] )
 
 # http://stackoverflow.com/questions/15175142/how-can-i-do-multiple-substitutions-using-regex-in-python
@@ -41,56 +42,93 @@ def parseRDF( rdfFile ):
         print( "LINE:", line )
         
         if re.match( "@prefix|@base|base|prefix", line, re.IGNORECASE ):
-            matchObj = re.match( "^@prefix ([^_]*:).*<(.*)> . ?$", line,  re.IGNORECASE )
+            matchObj = re.match( "^@prefix ([^_]*:).*<(.*)> . *$", line,  re.IGNORECASE )
             if matchObj:
                 key = matchObj.group(1)
                 value = matchObj.group(2)
                 prefixDict[key] = value
-                #print( "HANDLE PREFIX:", line )
-                #print( "PREFIX:", key, "VALUE:", value )
+                print( "HANDLE PREFIX:", line )
+                print( "PREFIX:", key, "VALUE:", value )
                 continue
             
-            matchObj = re.match( "^PREFIX ([^_]*:).*<(.*)> $", line, re.IGNORECASE )
+            matchObj = re.match( "^PREFIX ([^_]*:).*<(.*)> *$", line, re.IGNORECASE )
             if matchObj:
                 key = matchObj.group(1)
                 value = matchObj.group(2)
                 prefixDict[key] = value
-                #print( "HANDLE PREFIX:", line )
-                #print( "PREFIX:", key, "VALUE:", value )
+                print( "HANDLE PREFIX:", line )
+                print( "PREFIX:", key, "VALUE:", value )
                 continue
             
-            matchObj = re.match( "^@base <(.*)> . $", line, re.IGNORECASE )
+            matchObj = re.match( "^@base <(.*)> . *$", line, re.IGNORECASE )
             if matchObj:
-                #print( "HANDLE BASE:", line )
+                print( "HANDLE BASE:", line )
                 base = matchObj.group(1)
+                print( "BASE IS NOW:", base )
                 continue
             
-            matchObj = re.match( "^BASE <(.*)> $", line, re.IGNORECASE )        
+            matchObj = re.match( "^BASE <(.*)> *$", line, re.IGNORECASE )        
             if matchObj:
-                #print( "HANDLE BASE:", line )
+                print( "HANDLE BASE:", line )
                 base = matchObj.group(1)
+                print( "BASE IS NOW:", base )
                 continue
                 
             # reached end without parsing any :(
             print( "ERROR: prefix or base match failure on line", lineNum )
             exit(1)
             
-        # DO WE NEED? OR ON EACH ELEMENT?
-        line = multiple_replace(prefixDict, line)
-        
+
+        # shlex splits elements like shell, so "objects like this" will appear as 
+        # one element in the split array
         split = shlex.split(line) 
         print( "SPLIT: ", split )
         
-        for elem in split:
+        
+        for elem in split: 
+            # If it matches a <URI>
+            matchObj = re.match( "^<(.*)>$", elem )
+            if matchObj:
+                # Check if the URI is relative using urllib.parse.urlparse
+                if urlparse( matchObj.group(1) ).scheme == "":
+                    # if it is only relative, we add base to the URI
+                    elem = "<" + base + matchObj.group(1) + ">"
+                # else we input the URI to the state machine. 
+                tripleStateMachine( elem, lineNum )
+                continue  # done work, can continue to next element
+            
+            if elem != "." and elem != "," and elem != ";" and elem != "a":
+                if urlparse( elem[1:len(elem)-2] ).scheme != "":
+                    elem = "<" + multiple_replace( prefixDict, elem ) + ">"
+           
             tripleStateMachine( elem, lineNum )
+                
     
     # print out some statistics about the parsing.
     global tripleList
     
     print()
+    print( "TRIPLES:" )
+    for trip in tripleList:
+        print( trip[0], trip[1], trip[2] )
+    
+    print()
     print( "found", len(tripleList), "triples, and", len( prefixDict), "prefixes" )
     print( "file had", lineNum, "lines" )
     print( "potentially missed:", lineNum - (len(tripleList) + len(prefixDict)) )
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
 # curState = The last read element (hence we start on 0)
 STATE_SUBJECT = 1
@@ -157,82 +195,3 @@ def checkForEnding( elem, lineNum ):
         print( "Unexpected ending character on line", lineNum )
         exit()
 
-''' >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> '''
-        
-# gave up :(
-def parseRDFold( rdfFile ):
-    global prefixDict
-    curSubject = ""
-    curPredicate = ""
-    curMode ="."
-    lineNum = 0
-    for line in rdfFile:
-        lineNum += 1 
-        
-        print( "PROCESSING:", line )
-        
-        # Check if the line defines a prefix
-        if re.match( "@prefix", line, re.IGNORECASE ):
-            # Use regex to group the values and store them as a key:value pair
-            matchObj = re.match( ".* (.*:).*<(.*)> .", line )
-            if matchObj:
-                key = matchObj.group(1) 
-                value = matchObj.group(2) 
-                if key in prefixDict:
-                    # If the prefix is already defined, print a warning
-                    print( "Warning: prefix redefined on line", lineNum )
-                prefixDict[key] = value
-            else:
-                # if we reach here we failed to match the expected prefix format.
-                print( "Error: prefix match failure on line", lineNum )
-                exit(1)
-            continue; # Continue to the next line
-        
-        line = multiple_replace(prefixDict, line)
-        
-        split = shlex.split(line) 
-        print( "SPLIT:", split )
-        
-        # check valid state transitions  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        
-        # check that the line ending is valid.
-        if ( split[-1] != "." ) and ( split[-1] != "," ) and ( split[-1] != ";" ):
-            print( "Error: Illegal line ending \"" + split[-1] + "\" on line", lineNum )
-            exit(1)
-        
-        # If this line comes after a "."
-        if ( curMode == "." ):
-            # There must be a "?subject ?predicate ?object [.|,|;]"
-            if ( len(split) < 4 ):
-                print( "Error, missing subject, predicate, or object on line", lineNum )
-                exit(1)
-                
-            curSubject = split[0]
-            curPredicate = split[1]
-            
-            createRDFtuple( curSubject, curPredicate, split[2] )
-            curMode = split[3]
-            continue;
-                
-            
-        
-        # curMode = "."
-        # ?sub ?pred ?obj [.|,|;]
-        
-        
-        # curMode = ","
-        # ?obj [.|,]
-        
-        
-        # curMode = ";"
-        # ?pred ?obj [;|.]
-        
-        # Comma is list value, keep object and pred, prepare for new ?subject ?op
-        
-        # Semicolon is keep object but prepare for new ?pred ?subject ?op
-        
-        print( "COULD NOT PROCESS:", split )
-        
-        curMode = split[-1]
-        
-    
