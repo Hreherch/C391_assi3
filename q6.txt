@@ -1,0 +1,35 @@
+The database schema we have chosen is a single table with 3 columns; subject,
+predicate, and object.
+
+The commands to create an empty database with this schema:
+
+DROP TABLE IF EXISTS RDFTable;
+CREATE TABLE RDFTable ( subject TEXT,
+                        predicate TEXT,
+                        object TEXT);
+
+Our strategy to convert the RDF data into a database with the above schema 
+involves parsing the RDF data, replacing all instances of prefixes (or bases),
+replaced fully with their appropriate URIs. Similarly, any RDF data that uses
+the conventions of the comma (,) or semicolon (;) to substitute the subject and
+the predicate or only the subject (respectively) with their original definitions
+at the beginning of a given query will also be fully replaced with their 
+appropriate URIs, resulting in every query becoming full URI triples. Of course,
+any literals will remain as literals. We will treat each triple as a single 
+tuple in the database, with the subject, predicate, and object placed in its respective column in the RDFTable in SQLite.
+
+The following example of RDF graph data is from Edmonton.txt:
+
+...
+
+
+
+
+
+
+
+It becomes the following after being parsed in q8 (ready for database input):
+
+...
+
+
