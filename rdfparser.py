@@ -18,7 +18,8 @@
     
     Expectations:
         Each token is separated by at least one space or .split()-able 
-        character.
+        character. Example:
+            subject predicate object . #comment
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 '''
 
@@ -46,18 +47,187 @@ def multiple_replace(dict, text):
 
     # For each match, look-up corresponding value in dictionary
     return regex.sub(lambda mo: dict[mo.string[mo.start():mo.end()]], text) 
+    
+# Takes a string that represents a clean triple element and tries to convert it to <URI>
+def realize( string, isURI ):
+    global prefixDict
+    if isURI:
+        return 0
+    else:
+        return "<" + multiple_replace( prefixDict, string ) + ">"
+   
+# returns true if it parsed a valid prefix or base, otherwise prints an error and quits. 
+def detectPrefix( line, lineNum ):
+    global prefixDict
+    global base
+    
+    # Match any @prefix, PREFIX, @base, BASE and grab their values (case insensitive)
+    if re.match( "@prefix|@base|base|prefix", line, re.IGNORECASE ):
+    
+        # match @prefix declaration
+        matchObj = re.match( "^@prefix ([^_]*:).*<(.*)> . *$", line,  re.IGNORECASE )
+        if matchObj:
+            key = matchObj.group(1)
+            value = matchObj.group(2)
+            prefixDict[key] = value
+            print( "HANDLE PREFIX:", line )
+            print( "PREFIX:", key, "VALUE:", value )
+            return True
+        
+        # match PREFIX declaration
+        matchObj = re.match( "^PREFIX ([^_]*:).*<(.*)> *$", line, re.IGNORECASE )
+        if matchObj:
+            key = matchObj.group(1)
+            value = matchObj.group(2)
+            prefixDict[key] = value
+            print( "HANDLE PREFIX:", line )
+            print( "PREFIX:", key, "VALUE:", value )
+            return True
+        
+        # match @base declaration
+        matchObj = re.match( "^@base <(.*)> . *$", line, re.IGNORECASE )
+        if matchObj:
+            print( "HANDLE BASE:", line )
+            base = matchObj.group(1)
+            print( "BASE IS NOW:", base )
+            return True
+        
+        # match BASE declaration
+        matchObj = re.match( "^BASE <(.*)> *$", line, re.IGNORECASE )        
+        if matchObj:
+            print( "HANDLE BASE:", line )
+            base = matchObj.group(1)
+            print( "BASE IS NOW:", base )
+            return True
+            
+        # reached end without parsing any definition properly
+        print( "ERROR: declared prefix or base match failure on line", lineNum )
+        exit(1)
+    else:
+        return False
+    
+def preParse( ttlFile ):
+    STATE_WS = 0            # separating elems by whitespace
+    STATE_STARTQUOTE = 1    # currently determining what quote state to go to
+    STATE_SINGQ = 2         # currently in ' ... '
+    STATE_DOUBQ = 3         # currently in " ... "
+    STATE_LONG_SINGQ = 4    # currently in ''' ... '''
+    STATE_LONG_DOUBQ = 5    # currently in """ ... """ 
+    STATE_URI = 6           # currently in < ... >
+    STATE_NONWS = 7         # parsing some non-whitespace substring
+    STATE_EXPECT_WS = 8     # need to wait for whitespace (otherwise it violates rules)
+    curState = STATE_WS
+    elemList = []
+    curElem = ""
+
+    lineNum = 0
+    for line in ttlFile:
+        lineNum += 1
+        
+        # detect if the line contains a prefix and go to the next line after parsing it
+        # Should be STATE_WS because we shouldn't parse these in literals or URIs (an error)
+        if curState == STATE_WS:
+            if detectPrefix( line, lineNum ):
+                continue
+    
+        # We will individually go over each character in the line. 
+        for ch in line:
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # We are expecting whitespace here (that we will ignore)
+            # curElem should be empty
+            print( "state =", curState, "ch =", ch, "curElem =", curElem )
+            if curState == STATE_WS:
+                # Check if we are encountering a string
+                if (ch == "'") or (ch == '"'):
+                    curElem += ch
+                    curState = STATE_STARTQUOTE
+                    continue
+                    
+                # check if we are encountering a comment
+                elif (ch == "#"):
+                    break # we stop parsing the line (for loop picks up next line)
+                
+                # Check if we encountered an ending
+                elif (ch == ".") or (ch == ";") or (ch == ","):
+                    elemList.append( ch )
+                    curState = STATE_EXPECT_WS
+                    continue
+                
+                # check if we are encountering the start of a URI
+                elif (ch == "<"):
+                    curElem += ch
+                    curState = STATE_URI
+                    continue;
+                
+                # We just filter out whitespace
+                elif (ch.isspace()):
+                    continue
+                
+                # we are encountering a non-whitespace character, switch states
+                else:
+                    curState = STATE_NONWS
+                    curElem += ch
+                    continue
+                    
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            elif curState == STATE_NONWS or curState == STATE_URI:
+                # keep adding to the current element until we hit whitespace
+                if (not ch.isspace()):
+                    curElem += ch
+                    continue
+                # attempt to resolve the non-whitespace element
+                else:
+                    if curState == STATE_URI:
+                        curElem = realize( curElem, True )
+                        elemList.append( curElem )
+                    elif curState == STATE_NONWS:
+                        curElem = realize( curElem, False )
+                        elemList.append( curElem )
+                    curState = STATE_WS
+                    curElem = ""
+                    continue
+                    
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            elif curState == STATE_STARTQUOTE:
+                curElem += ch
+                if ( curElem[0] == curElem[1] ):
+                    # need to check for third
+                    continue
+                else:
+                    if (curElem[0] == '"'):
+                        curState = STATE_DOUBQ
+                        continue
+                    else:
+                        curState = STATE_SINGQ
+                        continue
+                    
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            elif curState == STATE_EXPECT_WS:
+                if (ch.isspace()):
+                    curState = STATE_WS
+                    continue
+                else:
+                    print( "Error, expecting whitespace between tokens on line", lineNum )
+                    exit(1)
+             
+                        
+    return elemList
+                       
 
 
-def parseRDF( rdfFile ):
+def parseRDF( ttlFile ):
     global prefixDict
     
     # The @base or BASE defined URI
     base = ""
-    
     # The line number of the parsed file
     lineNum = 0
     
-    for line in rdfFile:
+    elemList = preParse( ttlFile )
+    print( elemList )
+    exit(0)
+    
+    for line in ttlFile:
         lineNum += 1
         line = line.strip()
         
