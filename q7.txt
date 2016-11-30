@@ -1,0 +1,10 @@
+DROP INDEX IF EXISTS RDFTableCompositeIndex;
+
+CREATE INDEX RDFTableCompositeIndex
+ON RDFTable (subject, predicate, object);
+
+We are creating a composite index for every column in the RDFTable. 
+A composite index on all columns will be very beneficial to any queries on this table because every column will be used for joining, filtering, and some for selecting. In particular, composite indices are useful for queries that always
+have the left most columns of the index in the WHERE clauses of the query
+(joins). The left most columns, subject and predicate, will never not show up in an RDF query, thus this index will improve performance for queries on our
+table.
