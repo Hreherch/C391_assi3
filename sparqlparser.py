@@ -113,8 +113,6 @@ def parseSPARQL(SPARQLfile):
 
                 # Otherwise it is a prefix with a value, replace it with its full URI
                 else:
-                    # print("prefixDict:", prefixDict)
-                    # print("Parsing part: " + part)
                     tempTriple.append("<" + multiple_replace(prefixDict, part) + ">")
 
             # Append the parsed triple into a list of parsed triples
