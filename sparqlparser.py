@@ -70,6 +70,13 @@ def parseSPARQL(SPARQLfile):
             # lineNum represents the amount of triples after the select statement
             lineNum = 1
             continue
+        
+        # If the WHERE clause is found on a new line rather than with the SELECT
+        elif parseLine[0] == "WHERE":
+            if selectedVariables != []:
+                lineNum = 1
+                continue
+
 
         # If the line is FILTER
         elif parseLine[0] == "FILTER":
@@ -186,7 +193,6 @@ def writeSQL():
         SQLiteQuery += beginning
         i = 0
         print("length of variable usage", len(variableUsageDict))
-
         # Write joins
         while i <= len(variableUsageDict[var]) - 1:
             endVars = "" if i == len(variableUsageDict[var]) - 1 else "\n"
@@ -204,13 +210,6 @@ def writeSQL():
 
     # If any math symbols were contained in the filter, it was a comparison filter
     # SQLiteQuery += getSQLFilter( filterLine )
-
-    # GROUP BY clause
-    # SQLiteQuery += "GROUP BY "
-    # for var in variableUsageDict:
-    #     end = "\n" if selectedVariables.index(var) == len(selectedVariables) - 1 else ""
-    #     SQLiteQuery += var.replace("?", "") + end
-
 
     # Don't forget the semicolon
     SQLiteQuery += ";"

@@ -32,13 +32,13 @@ def main():
     SQLparsedQuery = writeSQL()
     print(SQLparsedQuery)
 
-    conn = sqlite3.connect(dbPath)
-    curs = conn.cursor()
-    curs.execute(SQLparsedQuery)
-    result = curs.fetchall()
-    print("\nResults")
-    for row in result:
-        print(row)
+    # conn = sqlite3.connect(dbPath)
+    # curs = conn.cursor()
+    # curs.execute(SQLparsedQuery)
+    # result = curs.fetchall()
+    # print("\nResults")
+    # for row in result:
+    #     print(row)
 
 
 
