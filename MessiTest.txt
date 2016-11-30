@@ -1,0 +1,6 @@
+PREFIX dbr: <http://dbpedia.org/resource/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+SELECT ?place
+WHERE {
+dbr:Lionel_Messi dbo:birthPlace ?place
+}
