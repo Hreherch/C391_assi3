@@ -55,7 +55,7 @@ def parseSPARQL(SPARQLfile):
 
         # If the line is FILTER
         elif parseLine[0] == "FILTER":
-            filterLine = parseLine
+            filterLine = (" ".join(parseLine).replace("(", "").replace(")", "")).split()
             continue
 
         # Skip the closing bracket line
@@ -124,10 +124,16 @@ def writeSQL():
     
     SQLiteQuery += "SELECT "
     # Go over the variables in SELECT and write them to the query
+    # for var in selectedVariables:
+    #     end = ", " if selectedVariables.index(var) != len(selectedVariables) - 1 else "\n"
+    #     SQLiteQuery += var.replace("?", "") + end
+
     for var in selectedVariables:
         end = ", " if selectedVariables.index(var) != len(selectedVariables) - 1 else "\n"
-        SQLiteQuery += var.replace("?", "") + end  
-
+        if selectedVariables == ["*"]:
+            SQLiteQuery += "*" + "\n"
+        else:
+            SQLiteQuery += "t" + variableUsageDict[var][0][0] + "." + variableUsageDict[var][0][1] + " AS " + var.replace("?", "") + end 
     
     SQLiteQuery += "FROM "
     i = 1
@@ -146,7 +152,7 @@ def writeSQL():
                 continue
             end = "" if triple.index(part) == len(triple) else "\n"
             andStatements += "AND "
-            andStatements += "t" + str(belongsToTable) + "." + partsOfTriple[triple.index(part)] + " = " + part + end
+            andStatements += "t" + str(belongsToTable) + "." + partsOfTriple[triple.index(part)] + " = " + "\"" + part + "\"" + end
         
         belongsToTable += 1
     
@@ -184,7 +190,20 @@ def writeSQL():
         #         SQLiteQuery += "t" + usage[0] + "." + usage[1] + " = " + "t" + equalsUsage[0] + "." + equalsUsage[1] + end
 
     SQLiteQuery += andStatements
-                
+
+    print("This is the filter line: ")
+    print(filterLine)
+
+    
+    mathFilterSymbols = ["<", ">", "=", "<=", ">="]
+    for symbol in mathFilterSymbols:
+        if symbol in filterLine:
+            SQLiteQuery += "AND "
+            # identifier = 
+            SQLiteQuery += "t" + variableUsageDict[filterLine[filterLine.index(symbol) - 1]][0].replace("?", "") + "." + " " + symbol + " " + filterLine[filterLine.index(symbol) + 1]
+
+
+    SQLiteQuery += ";"
     return SQLiteQuery
     
 

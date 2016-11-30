@@ -1,6 +1,7 @@
 import os.path
 import sys
 from sparqlparser import parseSPARQL, writeSQL 
+import sqlite3
 
 def main():
     if len(sys.argv) != 3:
@@ -30,6 +31,13 @@ def main():
     SQLqueryString = parseSPARQL(SPARQLqueryFile)
     SQLparsedQuery = writeSQL()
     print(SQLparsedQuery)
+
+    # conn = sqlite3.connect(dbPath)
+    # curs = conn.cursor
+    # curs.execute(SQLparsedQuery)
+    # result = curs.fetchall()
+    # for row in result:
+    #     print(row)
 
 
 

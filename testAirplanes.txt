@@ -3,10 +3,11 @@ PREFIX db: <http://dbpedia.org/>
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX dbr: <http://dbpedia.org/resource/>
 
-SELECT * WHERE {
-  ?airport rdf:type dbo:Airport .
+SELECT ?airport ?city WHERE {
+  ?airport rdf:type "Edmonton" .
   ?airport dbo:city ?city .
   ?city rdf:type dbo:Airport .
   ?airport dbo:owner dbr:Transport_Canada . 
   ?city dbo:country dbr:Canada .
+  FILTER (?city < 30)
 }

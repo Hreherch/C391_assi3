@@ -1,6 +1,7 @@
 import os.path
 import sys
 import rdfparser
+import sqlite3
 
 def main():
     print()
@@ -31,4 +32,12 @@ def main():
     rdfFile = open( rdfPath, 'r' )
     parsedFile = rdfparser.parseRDF( rdfFile )
      
+def insertData(dbPath, tripleList):
+    conn = sqlite3.connect(dbPath)
+    curs = conn.cursor()
+    for triple in tripleList:
+        curs.execute("INSERT INTO Triples VALUES (?, ?, ?)", triple)
+
+
+
 main()
