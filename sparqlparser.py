@@ -15,6 +15,11 @@ selectedVariables = []
 filterLine = []
 lineNum = 0
 
+def stripQuotes( string ):    
+    if (string[0] == '"' and string[-1] == '"') or (string[0] == "'" and string[-1] == "'"):
+        return string[ 1 : len(string) - 1 ]
+    return string
+
 # modifies the use of the 
 def getSQLFilter( filterLine ):
     print( "testing filter", filterLine )
@@ -25,16 +30,32 @@ def getSQLFilter( filterLine ):
     if matchObj:
         string = matchObj.group(1)
         pattern = matchObj.group(2)
+
+        string = getTValue( variableUsageDict[string][0] )
+        pattern = stripQuotes( pattern )
+
         print( string, pattern )
-        return ( "FILTER( '" + string + "', 'REGEX', '" + pattern + "' )")
+        return ( "AND FILTER( " + string + ", \"REGEX\", " + pattern + " ) = 1")
     
     matchObj = re.search( '\((.*)([=|>|<|<=|>=])(.*)\)', filterLine, re.IGNORECASE )
     if matchObj:
-        val1 = matchObj.group(1)
-        val2 = matchObj.group(2)
-        val3 = matchObj.group(3)
+        val1 = matchObj.group(1).strip()
+        val2 = matchObj.group(2).strip()
+        val3 = matchObj.group(3).strip()
+
+        val1 = stripQuotes( val1 )
+        val3 = stripQuotes( val3 )
+        if val1.startswith('?'):
+            val1 = getTValue( variableUsageDict[val1][0] )
+        else:
+            val1 = "'" + val1 + "'"
+        if val3.startswith('?'):
+            val3 = getTValue( variableUsageDict[val3][0] )
+        else:
+            val3 = "'" + val3 + "'"
+
         print( val1, val2, val3 )
-        return( "FILTER( '" + val1.strip() + "', '" + val2 + "', '" + val3.strip() + "' )" )
+        return( "AND FILTER( " + val1.strip() + ", '" + val2 + "', " + val3.strip() + " ) = 1" )
 
 
 def parseSPARQL(SPARQLfile):

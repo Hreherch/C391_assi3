@@ -4,4 +4,4 @@ A3.db: dbMake.txt
 	sqlite3 A3.db < dbMake.txt
 
 clean:
-	rm -f A2.db
+	rm -f A3.db

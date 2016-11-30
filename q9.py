@@ -1,8 +1,8 @@
 import os.path
 import sys
-from sparqlparser import parseSPARQL, writeSQL 
+from sparqlparser import parseSPARQL, writeSQL, variableUsageDict, getTValue
 import sqlite3
-
+import re
 # returns (boolean, value) of a converted string to a number 
 # The bool represents if the conversion was successful
 def getNumeric( string ):
@@ -35,9 +35,13 @@ def switchCond( var1, cond, var2 ):
 
 def filterFunc(var1, operator, var2):
     if operator == "REGEX":
-        return re.search(var2, var1)
-
-    isNum1, val1, isNum2, val2 = getNumeric( var1 ), getNumeric( var2 )
+        if re.search(var2, var1):
+            return 1
+        else: 
+            return 0
+    
+    isNum1, val1 = getNumeric( var1 )
+    isNum2, val2 = getNumeric( var2 )
     
     if (isNum1 and isNum2):
         return switchCond( val1, operator, val2 )

@@ -4,8 +4,8 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX dbr: <http://dbpedia.org/resource/>
 PREFIX dbp: <http://dbpedia.org/property/>
 
-SELECT ?city ?name WHERE {
-  ?city dbp:populationTotal ?population .
-  ?city dbp:name ?name .
-  FILTER (REGEX(?name, "mon"))
+SELECT * WHERE {
+  ?city ?pred ?value
+  ?city2 ?pred2 ?value
+  FILTER ( ?value = ?value )
 }
