@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS RDFTable;
+CREATE TABLE Triples ( s TEXT,
+                        p TEXT,
+                        o TEXT);
+
+DROP INDEX IF EXISTS TriplesCompositeIndex;
+CREATE INDEX TriplesCompositeIndex ON Triples (s, p, o);
