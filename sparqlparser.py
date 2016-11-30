@@ -227,8 +227,8 @@ def writeSQL(dbPath):
     SQLiteQuery += conditionalLine # add the relational lines to the query.
      
     # remove annoying newline after the variable relations
-    if SQLiteQuery[-1] == '\n':
-        SQLiteQuery += '\b'
+    # if SQLiteQuery[-1] == '\n':
+        #SQLiteQuery += '\b'
      
     # append the and statements parsed earlier
     SQLiteQuery += andStatements
