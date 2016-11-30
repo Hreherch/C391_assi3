@@ -1,6 +1,6 @@
 import os.path
 import sys
-import sparqlparser
+from sparqlparser import parseSPARQL, writeSQL 
 
 def main():
     if len(sys.argv) != 3:
@@ -27,7 +27,9 @@ def main():
     # for line in SPARQLqueryFile:
     #     queryString += line
     # print(queryString)
-    SQLqueryString = sparqlparser.parseSPARQL(SPARQLqueryFile)
+    SQLqueryString = parseSPARQL(SPARQLqueryFile)
+    SQLparsedQuery = writeSQL()
+    print(SQLparsedQuery)
 
 
 
