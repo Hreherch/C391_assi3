@@ -413,6 +413,7 @@ def parseRDF( ttlFile ):
     
     print()
     print( "found", len(tripleList), "triples, and", len( prefixDict), "prefixes" )
+    return tripleList
         
 
 # State represents what was 'seen' last.

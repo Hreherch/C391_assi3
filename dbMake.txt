@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS RDFTable;
+DROP TABLE IF EXISTS Triples;
 CREATE TABLE Triples ( s TEXT,
                         p TEXT,
                         o TEXT);

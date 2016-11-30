@@ -149,7 +149,7 @@ def writeSQL():
             SQLiteQuery += "*" + "\n"
         # Place the specifier tx.{s,p,o} and rename it to be the same as in SPARQL
         else:
-            SQLiteQuery += "t" + variableUsageDict[var][0][0] + "." + variableUsageDict[var][0][1] + " AS " + var.replace("?", "") + end 
+            SQLiteQuery += "t" + variableUsageDict[var][0][0] + "." + variableUsageDict[var][0][1] + " AS " + var.replace("?", "") + end
     
     # The FROM clause
     SQLiteQuery += "FROM "
@@ -185,6 +185,8 @@ def writeSQL():
         whereStatement = False
         SQLiteQuery += beginning
         i = 0
+        print("length of variable usage", len(variableUsageDict))
+
         # Write joins
         while i <= len(variableUsageDict[var]) - 1:
             endVars = "" if i == len(variableUsageDict[var]) - 1 else "\n"
@@ -193,7 +195,7 @@ def writeSQL():
             else: 
                 if (i >= 2):
                     SQLiteQuery += "AND "
-                SQLiteQuery += firstEquals + " = " + "t" + variableUsageDict[var][i][0] + "." + variableUsageDict[var][i][1] + endVars
+                    SQLiteQuery += firstEquals + " = " + "t" + variableUsageDict[var][i][0] + "." + variableUsageDict[var][i][1] + endVars
             i += 1 
         SQLiteQuery += endLine
 
@@ -201,7 +203,13 @@ def writeSQL():
     SQLiteQuery += andStatements
 
     # If any math symbols were contained in the filter, it was a comparison filter
-    SQLiteQuery += getSQLFilter( filterLine )
+    # SQLiteQuery += getSQLFilter( filterLine )
+
+    # GROUP BY clause
+    # SQLiteQuery += "GROUP BY "
+    # for var in variableUsageDict:
+    #     end = "\n" if selectedVariables.index(var) == len(selectedVariables) - 1 else ""
+    #     SQLiteQuery += var.replace("?", "") + end
 
 
     # Don't forget the semicolon
