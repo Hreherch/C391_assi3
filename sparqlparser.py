@@ -76,6 +76,7 @@ def parseSPARQL(SPARQLfile):
             print( parseLine )
             filterLine = " ".join( parseLine )
             print( filterLine )
+            continue
     
         # Skip the closing bracket line
         elif parseLine[0] == "}":
