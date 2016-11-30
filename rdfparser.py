@@ -431,9 +431,8 @@ def tripleStateMachine( currentElem, lineNum ):
     global STATE_PERIOD, STATE_SEMICOLON, curSub, curPred, curObj
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    # 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # initial state or after a period 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     if curState == STATE_PERIOD:
         checkForEnding( currentElem, "a URI." )
         
@@ -450,9 +449,8 @@ def tripleStateMachine( currentElem, lineNum ):
         curState = STATE_SUBJECT
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    # 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # last saw a subject, looking for predicate
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     elif curState == STATE_SUBJECT or curState == STATE_SEMICOLON:
         checkForEnding( currentElem, "a URI or 'a'." )
         
@@ -470,9 +468,8 @@ def tripleStateMachine( currentElem, lineNum ):
         curState = STATE_PREDICATE
         
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    # 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # last saw a predicate, looking for an object
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     elif curState == STATE_PREDICATE or curState == STATE_COMMA:
         checkForEnding( currentElem, "a URI or a literal" )
         curObj = currentElem
@@ -498,9 +495,8 @@ def tripleStateMachine( currentElem, lineNum ):
         curState = STATE_OBJECT
     
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-    # 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Saw an object, looking for [.|,|;]
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     elif curState == STATE_OBJECT:
         if currentElem == ".":
             curState = STATE_PERIOD

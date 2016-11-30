@@ -15,6 +15,24 @@ selectedVariables = []
 filterLine = []
 lineNum = 0
 
+# modifies the use of the 
+def getSQLFilter( filterLine ):
+    print( "testing filter", filterLine )
+    matchObj = re.search( '\(regex\((.*),(.*)\)\)', filterLine, re.IGNORECASE )
+    if matchObj:
+        string = matchObj.group(1)
+        pattern = matchObj.group(2)
+        print( string, pattern )
+        return ( "FILTER( '" + string + "', 'REGEX', '" + pattern + "' )")
+    
+    matchObj = re.search( '\((.*)([=|>|<|<=|>=])(.*)\)', filterLine, re.IGNORECASE )
+    if matchObj:
+        val1 = matchObj.group(1)
+        val2 = matchObj.group(2)
+        val3 = matchObj.group(3)
+        print( val1, val2, val3 )
+        return( "FILTER( '" + val1.strip() + "', '" + val2 + "', '" + val3.strip() + "' )" )
+
 def parseSPARQL(SPARQLfile):
     global prefixDict
     global variableUsageDict
@@ -55,9 +73,10 @@ def parseSPARQL(SPARQLfile):
 
         # If the line is FILTER
         elif parseLine[0] == "FILTER":
-            filterLine = (" ".join(parseLine).replace("(", "").replace(")", "")).split()
-            continue
-
+            print( parseLine )
+            filterLine = " ".join( parseLine )
+            print( filterLine )
+    
         # Skip the closing bracket line
         elif parseLine[0] == "}":
             continue 
@@ -183,13 +202,7 @@ def writeSQL():
     SQLiteQuery += andStatements
 
     # If any math symbols were contained in the filter, it was a comparison filter
-    mathFilterSymbols = ["<", ">", "=", "<=", ">="]
-    for symbol in mathFilterSymbols:
-        if symbol in filterLine:
-            SQLiteQuery += "AND "
-            identifier = variableUsageDict[filterLine[filterLine.index(symbol) - 1]][0][0].replace("?", "")
-            column =  variableUsageDict[filterLine[filterLine.index(symbol) - 1]][0][1]
-            SQLiteQuery += "t" + identifier + "." + column + " " + symbol + " " + filterLine[filterLine.index(symbol) + 1]
+    SQLiteQuery += getSQLFilter( filterLine )
 
 
     # Don't forget the semicolon
