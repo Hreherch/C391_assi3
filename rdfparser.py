@@ -279,7 +279,11 @@ def preParse( ttlFile ):
                         continue
                     
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # STATE_EXPECT_WS
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             # 
+            # Terminates and prints an error if the current character is not
+            # whitespace
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_EXPECT_WS:
                 if (ch.isspace()):
@@ -290,11 +294,11 @@ def preParse( ttlFile ):
                     exit(1)
                     
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-            # 
+            # STATE_DOUBLQ (")
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_DOUBQ:
                 if ch in "\n\r":
-                    print( "Error: \"-type literals must not contain newlines or '\\'. On line", lineNum )
+                    print( "Error: \"-type literals must not contain newlines, found on line", lineNum )
                     exit(1)
                 
                 elif ch == '"':
@@ -307,11 +311,11 @@ def preParse( ttlFile ):
                     curElem += ch
                 
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-            # 
+            # STATE_SINGQ (')
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_SINGQ:
                 if ch in "\n\r":
-                    print( "Error: \"-type literals must not contain newlines or '\\'. On line", lineNum )
+                    print( "Error: \"-type literals must not contain newlines, found on line", lineNum )
                     exit(1)
                 
                 elif ch == "'":
@@ -324,7 +328,7 @@ def preParse( ttlFile ):
                     curElem += ch
                     
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-            # 
+            # STATE_LONG_DOUBQ (""")
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_LONG_DOUBQ:
                 curElem += ch
@@ -347,7 +351,7 @@ def preParse( ttlFile ):
                     continue
             
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-            # 
+            # STATE_LONG_SINGQ (''')
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_LONG_SINGQ:
                 curElem += ch
@@ -370,25 +374,27 @@ def preParse( ttlFile ):
                     continue
                     
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-            # 
+            # STATE_STRING_END
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_STRING_END:
+                curElem += ch
                 if ch == " ":
                     curElem = ""
                     curState = STATE_WS
                     continue
-                    
-                # We can check what the literal's type was here (or catch stray commas, etc...)
-                else:
-                    curElem += ch
-                    continue
                 
+                # if the first character after a literal is [.|;|.] 
+                # we want to be able to catch it.
+                elif len( curElem ) == 1:
+                    if curElem == '.' or curElem == ',' or curElem == ';':
+                        elemList.append( curElem )
+                        curElem = ""
+                        curState = STATE_WS
                 # do more stuff
                 
     return elemList
                        
-
-
+# Main function of rdfparser.py, calls preParse and tripleStateMachine.
 def parseRDF( ttlFile ):
     global prefixDict
   
@@ -431,8 +437,12 @@ def tripleStateMachine( currentElem, lineNum ):
     if curState == STATE_PERIOD:
         checkForEnding( currentElem, "a URI." )
         
-        # ensure that the thing passed in is the value 'a' or a <URI> (not literal)
-        if currentElem[0] != '<' or currentElem[-1] != '>':
+        # we allow blank nodes
+        if currentElem.startswith( "_:" ):
+            pass
+            
+        # ensure that the thing passed in is the value <URI> (not literal)
+        elif currentElem[0] != '<' or currentElem[-1] != '>':
             print( "Error, expected a <URI> not '" + currentElem + "'.")
             exit(1)
             
@@ -444,7 +454,7 @@ def tripleStateMachine( currentElem, lineNum ):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # last saw a subject, looking for predicate
     elif curState == STATE_SUBJECT or curState == STATE_SEMICOLON:
-        checkForEnding( currentElem, "a URI or 'a'" )
+        checkForEnding( currentElem, "a URI or 'a'." )
         
         if currentElem == "a":
             curPred = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
@@ -466,6 +476,24 @@ def tripleStateMachine( currentElem, lineNum ):
     elif curState == STATE_PREDICATE or curState == STATE_COMMA:
         checkForEnding( currentElem, "a URI or a literal" )
         curObj = currentElem
+        
+        # if it's a URI do nothing.
+        if curObj[0] == '<' or curObj[-1] == '>':
+            pass
+            
+        elif curObj.startswith( "_:"):
+            pass
+            
+        # if it's a literal, remove the quotes.
+        elif (curObj[0] == '"' and curObj[-1] == '"') or (curObj[0] == "'" and curObj[-1] == "'"):
+            if ( len(curObj) > 5 ) and curObj[0] == curObj[1] and curObj[0] == curObj[2]:
+                curObj = curObj[ 3: len(curObj)-3 ]
+            else:
+                curObj = curObj[ 1 : len(curObj) ]
+        else:
+            print( "Error, expected literal or URI got", currentElem )
+            exit(1)
+            
         createRDFtuple( curSub, curPred, curObj )
         curState = STATE_OBJECT
     
