@@ -16,11 +16,7 @@
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
     rdfparser 
     
-    Expectations:
-        Each token is separated by at least one space or .split()-able 
-        character. Example:
-            subject predicate object . #comment
-        We allow strings other than @en.
+    See the README for expected input. 
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 '''
 
@@ -30,6 +26,7 @@ from urllib.parse import urlparse
 
 # A dictionary that maps "prefixKey:" to "URIvalue"
 prefixDict = {}
+
 # each element in tripleList is a three element array containing a RDF triple
 tripleList = []
 
@@ -101,13 +98,11 @@ def detectPrefix( line, lineNum ):
     global prefixDict
     global base
     
-    line = line.strip()
-    
     # Match any @prefix, PREFIX, @base, BASE and grab their values (case insensitive)
     if re.match( "@prefix|@base|base|prefix", line, re.IGNORECASE ):
     
         # match @prefix declaration
-        matchObj = re.match( "^@prefix *([^_]*:) *<(.*)> *. *", line,  re.IGNORECASE )
+        matchObj = re.match( "^@prefix\s*([^_]*:)\s*<(.*)>\s*\.", line,  re.IGNORECASE )
         if matchObj:
             key = matchObj.group(1)
             value = matchObj.group(2)
@@ -119,7 +114,7 @@ def detectPrefix( line, lineNum ):
             return True
         
         # match PREFIX declaration
-        matchObj = re.match( "^PREFIX *([^_]*:) *<(.*)> *", line, re.IGNORECASE )
+        matchObj = re.match( "^PREFIX\s*([^_]*:)\s*<(.*)>", line, re.IGNORECASE )
         if matchObj:
             key = matchObj.group(1)
             value = matchObj.group(2)
@@ -130,7 +125,7 @@ def detectPrefix( line, lineNum ):
             return True
         
         # match @base declaration
-        matchObj = re.match( "^@base *<(.*)> *. *", line, re.IGNORECASE )
+        matchObj = re.match( "^@base\s*<(.*)>\s*\.", line, re.IGNORECASE )
         if matchObj:
             if relativeURI( matchObj.group(1) ):
                 base += matchObj.group(1)
@@ -139,7 +134,7 @@ def detectPrefix( line, lineNum ):
             return True
         
         # match BASE declaration
-        matchObj = re.match( "^BASE *<(.*)> *", line, re.IGNORECASE )        
+        matchObj = re.match( "^BASE\s*<(.*)>", line, re.IGNORECASE )        
         if matchObj:
             if relativeURI( matchObj.group(1) ):
                 base += matchObj.group(1)
@@ -152,7 +147,9 @@ def detectPrefix( line, lineNum ):
         exit(1)
     else:
         return False
-    
+
+# The preparser separates the .ttl file into a list of each element, for use with 
+# the TURTLE state machine later on.  
 def preParse( ttlFile ):
     STATE_WS = 0            # separating elems by whitespace
     STATE_STARTQUOTE = 1    # currently determining what quote state to go to
@@ -165,11 +162,11 @@ def preParse( ttlFile ):
     STATE_EXPECT_WS = 8     # need to wait for whitespace (otherwise it violates rules)
     STATE_STRING_END = 9    # filter and confirm that string ending is correct. (i.e. @en, etc...)
     curState = STATE_WS
-    elemList = []
+    elemList = []           # list of elements from the TURTLE file to be returned
     curElem = ""
-    quoteCount = 0
+    quoteCount = 0          # counts the number of times a '"' or "'" occurs in LONG state.
 
-    lineNum = 0
+    lineNum = 0             # provide useful line information in case of error.
     for line in ttlFile:
         lineNum += 1
         
@@ -182,10 +179,12 @@ def preParse( ttlFile ):
         # We will individually go over each character in the line. 
         for ch in line:
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-            # 
+            # STATE_WS
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-            # We are expecting whitespace here (that we will ignore)
-            # curElem should be empty
+            #
+            # We are expecting whitespace here (that we will ignore).
+            # curElem should be empty.
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             print( "state =", curState, "ch =", ch, "curElem =", curElem )
             if curState == STATE_WS:
                 # Check if we are encountering a string
@@ -221,13 +220,18 @@ def preParse( ttlFile ):
                     continue
                     
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-            # 
+            # STATE_NONWS || STATE_URI
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            #
+            # Parsing an element that we will use the realize( string )
+            # function on. 
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_NONWS or curState == STATE_URI:
                 # keep adding to the current element until we hit whitespace
                 if (not ch.isspace()):
                     curElem += ch
                     continue
+                    
                 # attempt to resolve the non-whitespace element
                 else:
                     if curState == STATE_URI:
@@ -241,7 +245,11 @@ def preParse( ttlFile ):
                     continue
             
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-            # 
+            # STATE_STARTQUOTE
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            #
+            # Encountered a " or a ' need to determine if we are going into
+            # a multiline literal or a regular one.
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
             elif curState == STATE_STARTQUOTE:
                 curElem += ch
@@ -254,12 +262,14 @@ def preParse( ttlFile ):
                             curState = STATE_LONG_SINGQ
                             continue
                     else:
-                        print( "Error: something weird went on here" )
+                        # TODO: perhaps check for whitespace (i.e. '"" ')
+                        print( "Error: unexpected termination on line", lineNum )
                         exit(1)
                         
                 elif ( len(curElem) == 2 and curElem[0] == curElem[1] ):
                     # need to check for third
                     continue
+                    
                 else:
                     if (curElem[0] == '"'):
                         curState = STATE_DOUBQ
@@ -283,7 +293,7 @@ def preParse( ttlFile ):
             # 
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_DOUBQ:
-                if ch in "\n\r\\":
+                if ch in "\n\r":
                     print( "Error: \"-type literals must not contain newlines or '\\'. On line", lineNum )
                     exit(1)
                 
@@ -300,7 +310,7 @@ def preParse( ttlFile ):
             # 
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_SINGQ:
-                if ch in "\n\r\\":
+                if ch in "\n\r":
                     print( "Error: \"-type literals must not contain newlines or '\\'. On line", lineNum )
                     exit(1)
                 
@@ -398,8 +408,9 @@ def parseRDF( ttlFile ):
     print()
     print( "found", len(tripleList), "triples, and", len( prefixDict), "prefixes" )
         
-        
-STATE_SUBJECT = 1       # looking 
+
+# State represents what was 'seen' last.
+STATE_SUBJECT = 1
 STATE_PREDICATE = 2
 STATE_OBJECT = 3
 STATE_COMMA = 4

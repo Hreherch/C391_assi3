@@ -49,3 +49,6 @@ rdfparser.py
         
         * Python3 fails with inputs like 'é'. It does not have the ability to
         decode special characters like these.
+        
+        * RDF 1.1 specifies that '\' cannot be within a single quote or double
+        quote literal, we do not check for that within literals.
