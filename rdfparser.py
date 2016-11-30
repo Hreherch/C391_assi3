@@ -35,8 +35,6 @@ def createRDFtuple( curSubject, curPredicate, curObject ):
     tripleList.append( [ curSubject, 
                          curPredicate,
                          curObject ] )
-    print( "NEW TRIPLE:", tripleList[-1] )
-
 
 # http://stackoverflow.com/questions/15175142/how-can-i-do-multiple-substitutions-using-regex-in-python
 def multiple_replace(dict, text):
@@ -185,7 +183,7 @@ def preParse( ttlFile ):
             # We are expecting whitespace here (that we will ignore).
             # curElem should be empty.
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-            print( "state =", curState, "ch =", ch, "curElem =", curElem )
+            # print( "state =", curState, "ch =", ch, "curElem =", curElem )
             if curState == STATE_WS:
                 # Check if we are encountering a string
                 if (ch == "'") or (ch == '"'):
@@ -399,19 +397,19 @@ def parseRDF( ttlFile ):
     global prefixDict
   
     elemList = preParse( ttlFile )
-    print( elemList )        
+    # print( elemList )        
         
     for elem in elemList: 
         tripleStateMachine( elem, 0 )
     
     global tripleList
     
-    print()
-    print( "TRIPLES:" )
-    for trip in tripleList:
-        print( trip[0], trip[1], trip[2] )
+    # print()
+    # print( "TRIPLES:" )
+    # for trip in tripleList:
+    #     print( trip[0], trip[1], trip[2] )
     
-    print()
+    # print()
     print( "found", len(tripleList), "triples, and", len( prefixDict), "prefixes" )
     return tripleList
         

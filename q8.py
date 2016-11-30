@@ -4,8 +4,6 @@ from rdfparser import tripleList, parseRDF
 import sqlite3
 
 def main():
-    print()
-    
     # Check that there are an appropriate amount of command line args.
     if len( sys.argv ) != 3:
         print( "Error: missing or too many arguments" )
