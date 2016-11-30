@@ -1,0 +1,2 @@
+PREFIX a:<http://helloworld/>
+a:Your_mom a:has "spaghetti poop" .

@@ -20,6 +20,7 @@
         Each token is separated by at least one space or .split()-able 
         character. Example:
             subject predicate object . #comment
+        We allow strings other than @en.
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 '''
 
@@ -50,9 +51,15 @@ def multiple_replace(dict, text):
     
 # Takes a string that represents a clean triple element and tries to convert it to <URI>
 def realize( string, isURI ):
-    global prefixDict
+    global prefixDict, base
     if isURI:
-        return 0
+        URI = string[ 1 : len(string)-1 ]
+        # Check if the URI is relative using urllib.parse.urlparse
+        if urlparse( URI ).scheme == "":
+            # if it is only relative, we add base to the URI
+            return "<" + base + URI + ">"
+        else:
+            return string
     else:
         return "<" + multiple_replace( prefixDict, string ) + ">"
    
@@ -116,9 +123,11 @@ def preParse( ttlFile ):
     STATE_URI = 6           # currently in < ... >
     STATE_NONWS = 7         # parsing some non-whitespace substring
     STATE_EXPECT_WS = 8     # need to wait for whitespace (otherwise it violates rules)
+    STATE_STRING_END = 9    # filter and confirm that string ending is correct. (i.e. @en, etc...)
     curState = STATE_WS
     elemList = []
     curElem = ""
+    quoteCount = 0
 
     lineNum = 0
     for line in ttlFile:
@@ -133,6 +142,8 @@ def preParse( ttlFile ):
         # We will individually go over each character in the line. 
         for ch in line:
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             # We are expecting whitespace here (that we will ignore)
             # curElem should be empty
             print( "state =", curState, "ch =", ch, "curElem =", curElem )
@@ -170,6 +181,8 @@ def preParse( ttlFile ):
                     continue
                     
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_NONWS or curState == STATE_URI:
                 # keep adding to the current element until we hit whitespace
                 if (not ch.isspace()):
@@ -186,11 +199,25 @@ def preParse( ttlFile ):
                     curState = STATE_WS
                     curElem = ""
                     continue
-                    
+            
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            # 
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
             elif curState == STATE_STARTQUOTE:
                 curElem += ch
-                if ( curElem[0] == curElem[1] ):
+                if ( len(curElem) == 3 and curElem[0] == curElem[1] ):
+                    if curElem[2] == curElem[0]:
+                        if curElem[0] == '"':
+                            curState = STATE_LONG_SINGQ
+                            continue
+                        elif curElem[0] == "'":
+                            curState = STATE_LONG_SINGQ
+                            continue
+                    else:
+                        print( "Error: something weird went on here" )
+                        exit(1)
+                        
+                elif ( len(curElem) == 2 and curElem[0] == curElem[1] ):
                     # need to check for third
                     continue
                 else:
@@ -202,15 +229,106 @@ def preParse( ttlFile ):
                         continue
                     
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             elif curState == STATE_EXPECT_WS:
                 if (ch.isspace()):
                     curState = STATE_WS
                     continue
                 else:
-                    print( "Error, expecting whitespace between tokens on line", lineNum )
+                    print( "Error, expecting whitespace after token on line", lineNum )
                     exit(1)
-             
-                        
+                    
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            elif curState == STATE_DOUBQ:
+                if ch in "\n\r\\":
+                    print( "Error: \"-type literals must not contain newlines or '\\'. On line", lineNum )
+                    exit(1)
+                
+                elif ch == '"':
+                    curState = STATE_STRING_END
+                    elemList.append( curElem + ch )
+                    curElem = ""
+                    continue
+                    
+                else:
+                    curElem += ch
+                
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            elif curState == STATE_SINGQ:
+                if ch in "\n\r\\":
+                    print( "Error: \"-type literals must not contain newlines or '\\'. On line", lineNum )
+                    exit(1)
+                
+                elif ch == "'":
+                    curState = STATE_STRING_END
+                    elemList.append( curElem + ch )
+                    curElem = ""
+                    continue
+                    
+                else:
+                    curElem += ch
+                    
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            elif curState == STATE_LONG_DOUBQ:
+                curElem += ch
+                # If we have 2 concurrent "s, and the third is seen, the literal is done
+                if quoteCount == 2 and ch == '"':
+                    curState = STATE_STRING_END
+                    quoteCount = 0
+                    elemList.append( curElem )
+                    curElem = ""
+                    continue
+                    
+                # We add a count for each concurrent double quote we encounter
+                elif ch == '"':
+                    quoteCount += 1
+                    continue
+                    
+                # go to the next 
+                else:
+                    quoteCount = 0
+                    continue
+            
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            elif curState == STATE_LONG_SINGQ:
+                curElem += ch
+                # If we have 2 concurrent 's, and the third is seen, the literal is done
+                if quoteCount == 2 and ch == "'":
+                    curState = STATE_STRING_END
+                    elemList.append( curElem )
+                    quoteCount = 0
+                    curElem = ""
+                    continue
+                    
+                # We add a count for each single quote we encounter
+                elif ch == "'":
+                    quoteCount += 1
+                    continue
+                
+                # else we continue to the next character
+                else:
+                    quoteCount = 0
+                    continue
+                    
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+            # 
+            # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+            elif curState == STATE_STRING_END:
+                if ch == " ":
+                    curState = STATE_WS
+                    continue
+                else:
+                    curElem += ch
+                
     return elemList
                        
 

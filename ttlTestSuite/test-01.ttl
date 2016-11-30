@@ -1,0 +1,8 @@
+# https://github.com/arcfide/riastradh/blob/master/schemantic-web/tests/rdf-turtle/test-01.ttl
+# Test @prefix and qnames
+@prefix :  <http://example.org/base1#> .
+@prefix a: <http://example.org/base2#> .
+@prefix b: <http://example.org/base3#> .
+:a :b :c .
+a:a a:b a:c .
+:a a:a b:a .
