@@ -3,6 +3,19 @@ import sys
 from sparqlparser import parseSPARQL, writeSQL 
 import sqlite3
 
+def checkNumber(str):
+    
+
+def filterFunc(var, operator, condition):
+    if operator == "REGEX":
+        if re.search(condition, var):
+            return True
+    elif operator == "<":
+        checkNumber(var)
+        return 
+        
+        
+
 def main():
     if len(sys.argv) != 3:
         print("Missing or too many arguments:")
@@ -29,16 +42,18 @@ def main():
     #     queryString += line
     # print(queryString)
     SQLqueryString = parseSPARQL(SPARQLqueryFile)
-    SQLparsedQuery = writeSQL()
+    SQLparsedQuery = writeSQL(dbPath)
     print(SQLparsedQuery)
 
-    # conn = sqlite3.connect(dbPath)
-    # curs = conn.cursor()
-    # curs.execute(SQLparsedQuery)
-    # result = curs.fetchall()
-    # print("\nResults")
-    # for row in result:
-    #     print(row)
+    conn = sqlite3.connect(dbPath)
+    conn.creat_function("FILTER", 3, filterFunc)
+    curs = conn.cursor()
+    curs.execute(SQLparsedQuery)
+    result = curs.fetchall()
+    print("\nResults")
+    for row in result:
+        print(row)
+
 
 
 

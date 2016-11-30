@@ -1,5 +1,6 @@
 import re
 import shlex
+from q9.py import dbPath
 from rdfparser import detectPrefix, multiple_replace, prefixDict
 
 
@@ -35,6 +36,7 @@ def getSQLFilter( filterLine ):
         val3 = matchObj.group(3)
         print( val1, val2, val3 )
         return( "FILTER( '" + val1.strip() + "', '" + val2 + "', '" + val3.strip() + "' )" )
+
 
 def parseSPARQL(SPARQLfile):
     global prefixDict
@@ -76,10 +78,9 @@ def parseSPARQL(SPARQLfile):
         
         # If the WHERE clause is found on a new line rather than with the SELECT
         elif parseLine[0] == "WHERE":
-            if selectedVariables != []:
-                lineNum = 1
-                continue
-
+            lineNum = 1
+            continue
+            print("Here")
 
         # If the line is FILTER
         elif parseLine[0] == "FILTER":
@@ -165,7 +166,7 @@ def getQConds( key, variableUsageDict ):
         
         
 
-def writeSQL():
+def writeSQL(dbPath):
     global prefixDict
     global variableUsageDict
     global parsedTriples
@@ -233,11 +234,12 @@ def writeSQL():
     # append the and statements parsed earlier
     SQLiteQuery += andStatements
 
-    # If any math symbols were contained in the filter, it was a comparison filter
+    # If any matching symbols were contained in the filter, it was a comparison filter
     SQLiteQuery += getSQLFilter( filterLine )
 
     # Don't forget the semicolon
     SQLiteQuery += ";"
+
     return SQLiteQuery
     
 
