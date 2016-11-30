@@ -18,6 +18,9 @@ lineNum = 0
 # modifies the use of the 
 def getSQLFilter( filterLine ):
     print( "testing filter", filterLine )
+    if filterLine == []:
+        return ""
+    
     matchObj = re.search( '\(regex\((.*),(.*)\)\)', filterLine, re.IGNORECASE )
     if matchObj:
         string = matchObj.group(1)
@@ -137,6 +140,30 @@ def parseSPARQL(SPARQLfile):
     print(variableUsageDict)
     print("\nThese are the variables in SELECT")
     print(selectedVariables)
+    
+# returns something like "t1.s" based on the input
+def getTValue( str ):
+    return "t" + str[0] + "." + str[1]
+    
+# returns something like "t1.s = t2.o" based on input
+def getEquality( str1, str2 ):
+    return getTValue(str1) + " = " + getTValue(str2)
+    
+# assuming the list is >= 2 elements, returns a full conditional statement 
+# to relate the elements of variableUsageDict[key]
+# returns something like "t1.s = t2.o AND t2.o = t4.s ..."
+# Q for question-mark like in ?city
+def getQConds( key, variableUsageDict ):
+    value = ""
+    list = variableUsageDict[key]
+    size = len(list)
+    for index in range(size-1):
+        value += getEquality( list[index], list[index + 1]) 
+        if index+1 != size-1:
+            value += " AND "
+    return value
+        
+        
 
 def writeSQL():
     global prefixDict
@@ -180,36 +207,34 @@ def writeSQL():
             andStatements += "t" + str(belongsToTable) + "." + partsOfTriple[triple.index(part)] + " = " + "\"" + part + "\"" + end
         
         belongsToTable += 1
+    
+    # > > RELATE THE ?VARS < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < < 
+    SQLiteQuery += "WHERE "     # begin the WHERE
+    conditionalLine = ""        # start a independent string for variable equality
+    for key in variableUsageDict:
+        # if the list is len <= 1, then we don't need to relate any elements
+        if len(variableUsageDict[key]) <= 1:
+            continue
+            
+        # if the line is empty so far, and the current variable has equality needed
+        if conditionalLine == "":
+            conditionalLine += getQConds( key, variableUsageDict ) + "\n"
+        
+        # ("AND " b/c line is not empty)
+        elif conditionalLine != "":
+            conditionalLine += "AND " + getQConds( key, variableUsageDict ) + "\n"
 
-    # table joins, also the start of the WHERE clause
-    whereStatement = True
-    writtenVars = []
-    # For each variable, check its joins in the variable usage dict and write the result to the query
-    for var in variableUsageDict:
-        writtenVars.append(var)
-        beginning = "WHERE " if whereStatement or var == variableUsageDict[var][-1] else "AND "
-        endLine = "\n" if var not in writtenVars or whereStatement else ""
-        whereStatement = False
-        SQLiteQuery += beginning
-        i = 0
-        print("length of variable usage", len(variableUsageDict))
-        # Write joins
-        while i <= len(variableUsageDict[var]) - 1:
-            endVars = "" if i == len(variableUsageDict[var]) - 1 else "\n"
-            if i == 0:
-                firstEquals = "t" + variableUsageDict[var][i][0] + "." + variableUsageDict[var][i][1]
-            else: 
-                if (i >= 2):
-                    SQLiteQuery += "AND "
-                    SQLiteQuery += firstEquals + " = " + "t" + variableUsageDict[var][i][0] + "." + variableUsageDict[var][i][1] + endVars
-            i += 1 
-        SQLiteQuery += endLine
-
+    SQLiteQuery += conditionalLine # add the relational lines to the query.
+     
+    # remove annoying newline after the variable relations
+    if SQLiteQuery[-1] == '\n':
+        SQLiteQuery += '\b'
+     
     # append the and statements parsed earlier
     SQLiteQuery += andStatements
 
     # If any math symbols were contained in the filter, it was a comparison filter
-    # SQLiteQuery += getSQLFilter( filterLine )
+    SQLiteQuery += getSQLFilter( filterLine )
 
     # Don't forget the semicolon
     SQLiteQuery += ";"
