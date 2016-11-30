@@ -52,3 +52,6 @@ rdfparser.py
         
         * RDF 1.1 specifies that '\' cannot be within a single quote or double
         quote literal, we do not check for that within literals.
+        
+        * We don't care about the @language tag, or the graph type following a 
+        literal. Everything ends up getting stored. 

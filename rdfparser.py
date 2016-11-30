@@ -481,7 +481,7 @@ def tripleStateMachine( currentElem, lineNum ):
         if curObj[0] == '<' or curObj[-1] == '>':
             pass
             
-        elif curObj.startswith( "_:"):
+        elif curObj.startswith( "_:" ):
             pass
             
         # if it's a literal, remove the quotes.
@@ -489,7 +489,7 @@ def tripleStateMachine( currentElem, lineNum ):
             if ( len(curObj) > 5 ) and curObj[0] == curObj[1] and curObj[0] == curObj[2]:
                 curObj = curObj[ 3: len(curObj)-3 ]
             else:
-                curObj = curObj[ 1 : len(curObj) ]
+                curObj = curObj[ 1 : len(curObj)-1 ]
         else:
             print( "Error, expected literal or URI got", currentElem )
             exit(1)
