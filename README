@@ -1,0 +1,51 @@
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+= = = = = = = = = = = = = = =  README = = = = = = = = = = = = = = = = = = = = =
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+Assignment:          3
+Due Date:            November 30, 2016
+Name 1:              Bennett Hreherchuk
+Unix ID 1:           hreherch
+Name 2:              Kieter Balisnomo 
+Unix ID 2:           balisnom
+Instructor:          Denilson Barbosa
+Lab Section:         D03
+Teaching Assistant:  Michael Strobl
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+= = = Compilation & Execution Instructuions
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+No compilation required. 
+
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+= = = File Information
+= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+
+rdfparser.py
+    Attempts to parse a .ttl file (or any text file containing TURTLE triples 
+    (Turse RDF Triple Language triples)). It outputs a python list of triples.
+    The code has been tested with the examples located at 
+    https://www.w3.org/TR/turtle/ up to section 2.6. The implementation uses two
+    state-machines to parse the input. First, the preparser separates each 
+    element/token in the file into a python list of tokens. Second, the TURTLE
+    state machine takes an element one by one and generates a list of triples.
+    
+    Relative URIs are detected using the library urllib.parse and its module 
+    urlparse. We check if the URI has a schema, if not we assume we append to 
+    the base/prefix.
+    
+    Booleans are stored as strings. When building a SPARQL query for q9, you 
+    should use a string to represent True or False, and not the standard 
+    SPARQL true/false.
+    
+    IMPORTANT: EXPECTED INPUT 
+        * Every token must be separated by at least one whitespace (carrige 
+        return, new line, single space, tabulation...) if not, the result is 
+        unspecified. We do handle [.|;|,] directly after literals (to meet
+        w3 example expectations) however do not depend on this.
+        
+        * Python3 fails with inputs like 'é'. It does not have the ability to
+        decode special characters like these.

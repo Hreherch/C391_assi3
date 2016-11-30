@@ -1,0 +1,5 @@
+# Taken from https://github.com/arcfide/riastradh/blob/master/schemantic-web/tests/rdf-turtle
+
+# parser should return an error
+# prefix name must end in a :
+@prefix a <#> .
