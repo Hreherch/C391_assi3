@@ -1,0 +1,2 @@
+# This one tests if we can handle a comma directly after a literal. 
+<http://example.org/#spiderman> <http://xmlns.com/foaf/0.1/name> "Spiderman", "???????-????"@ru .
