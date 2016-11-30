@@ -1,0 +1,23 @@
+# write a query to find the number of South American soccer players who (appear in Wikipedia)
+# and have played for a club in the Spanish "La Liga� that has never been relegated, grouping by country.
+
+# Check if we have to link a player to their wikipedia page?
+
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX dbr: <http://dbpedia.org/resource/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX dbc: <http://dbpedia.org/resource/Category:>
+PREFIX dt: <http://dbpedia.org/datatype/>
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+
+SELECT ?country (COUNT(DISTINCT ?player) AS ?number_of_unrelegated_South_American_players_in_La_Liga) WHERE {
+  ?player dct:subject dbc:La_Liga_players .
+  ?player dbp:clubs ?team .
+  ?player dbo:birthPlace ?city .
+  ?team dbp:league dbr:La_Liga .
+  ?team dct:subject dbc:Unrelegated_association_football_clubs .
+  ?city dbo:country ?country .
+  ?country dct:subject dbc:Countries_in_South_America 
+} 
+GROUP BY ?country

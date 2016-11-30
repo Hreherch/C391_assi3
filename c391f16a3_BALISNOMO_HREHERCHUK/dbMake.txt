@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS Triples;
+CREATE TABLE Triples ( s TEXT,
+                        p TEXT,
+                        o TEXT);
+
+DROP INDEX IF EXISTS TriplesCompositeIndex;
+CREATE INDEX TriplesCompositeIndex ON Triples (s, p, o);

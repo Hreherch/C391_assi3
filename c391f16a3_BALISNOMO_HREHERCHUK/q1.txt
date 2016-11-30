@@ -1,0 +1,16 @@
+# Write a query to find which are the stadiums used by Italian soccer teams. 
+# Have the team and the stadium in the output. 
+# If available, output the capacity of the stadium as well.
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX dct: <http://purl.org/dc/terms/>
+PREFIX db: <http://dbpedia.org/>
+PREFIX dbc: <http://dbpedia.org/resource/Category:>
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+SELECT * WHERE {
+  ?team dct:subject dbc:Football_clubs_in_Italy .
+  ?team dbo:ground ?stadium .
+  ?stadium rdf:type dbo:Stadium .
+  OPTIONAL { ?stadium dbp:capacity ?capacity . }
+}

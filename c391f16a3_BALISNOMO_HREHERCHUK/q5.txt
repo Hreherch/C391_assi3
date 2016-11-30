@@ -1,0 +1,19 @@
+# write a query to find, for every city in Alberta that has a hospital, the name of the city, 
+# and the ratio of population over the number of hospitals, sorted in decreasing order of this ratio.
+
+# ref: http://dbpedia.org/page/Category:Hospitals_in_Alberta
+
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX db: <http://dbpedia.org/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX dbr: <http://dbpedia.org/resource/>
+PREFIX dbp: <http://dbpedia.org/property/>
+
+SELECT ?name (?population/COUNT(?hospital) AS ?ratio) WHERE {
+  ?city dbo:type dbr:List_of_cities_in_Alberta ;
+        dbp:populationTotal ?population ;
+        dbp:name ?name .
+  ?hospital dbo:region ?city ;
+            rdf:type dbo:Hospital .
+}
+GROUP BY ?name ?population

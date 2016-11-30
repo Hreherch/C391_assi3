@@ -1,0 +1,20 @@
+# Write a query to find the number of World Cup Final matches 
+# played by every national soccer team  who has played in more than 3 finals.
+
+# 1950 FIFA World Cup is broken, because it has a redirect? 
+# This only affects brazil (needs +1)
+
+PREFIX dbp: <http://dbpedia.org/property/>
+PREFIX dbr: <http://dbpedia.org/resource/>
+PREFIX dbc: <http://dbpedia.org/resource/Category:>
+PREFIX db: <http://dbpedia.org/>
+PREFIX purl: <http://purl.org/dc/terms/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+
+SELECT ?team (COUNT(?final) AS ?numPlaysInFinal) WHERE {
+  ?final purl:subject dbc:FIFA_World_Cup_finals .
+  ?final dbo:team ?team
+}
+GROUP BY ?team 
+HAVING (COUNT(?final) > 3)
