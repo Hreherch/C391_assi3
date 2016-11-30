@@ -3,12 +3,12 @@ import shlex
 from rdfparser import detectPrefix, multiple_replace, prefixDict
 
 
-prefixDict = {}
 # tripleList = []
 # queryList = []
 
 # variable usage dict will have each var with key:value, variable: lineNum+partOfTriple(s, p, or o)
 variableUsageDict = {}
+# The column names in the table in the database are subject (s), predicate (p), object (o)
 partsOfTriple = ["s", "p", "o"]
 parsedTriples = []
 selectedVariables = []
@@ -25,6 +25,7 @@ def parseSPARQL(SPARQLfile):
 
     lineNum = 0
     for line in SPARQLfile:
+        print("line", line)
         # Check for prefixes
         if detectPrefix(line, 0):
             continue
@@ -69,6 +70,7 @@ def parseSPARQL(SPARQLfile):
 
             # Iterate over each part (subject predicate object) of the triple
             for part in parseLine:
+                print("part: " + part)
 
                 # If the part starts with a ? it is a variable
                 if part.startswith("?"):
@@ -92,6 +94,7 @@ def parseSPARQL(SPARQLfile):
 
                 # Otherwise it is a prefix with a value, replace it with its full URI
                 else:
+                    # print("prefixDict:", prefixDict)
                     # print("Parsing part: " + part)
                     tempTriple.append("<" + multiple_replace(prefixDict, part) + ">")
 
@@ -100,20 +103,91 @@ def parseSPARQL(SPARQLfile):
         
         lineNum += 1
 
-    # print("\nThese are the parsed triples: ")
-    # for triple in parsedTriples:
-    #     print(triple) 
+    print("\nThese are the parsed triples: ")
+    for triple in parsedTriples:
+        print(triple) 
     # print("\nPrefix dictionary")
     # print(prefixDict)
-    # print("\nVariable Usage Dictionary")
-    # print(variableUsageDict)
+    print("\nVariable Usage Dictionary")
+    print(variableUsageDict)
+    print("\nThese are the variables in SELECT")
+    print(selectedVariables)
 
-def writeSQL:
+def writeSQL():
     global prefixDict
     global variableUsageDict
     global parsedTriples
     global selectedVariables
     global lineNum
+    global partsOfTriple
+    SQLiteQuery = ""
+    
+    SQLiteQuery += "SELECT "
+    # Go over the variables in SELECT and write them to the query
+    for var in selectedVariables:
+        end = ", " if selectedVariables.index(var) != len(selectedVariables) - 1 else "\n"
+        SQLiteQuery += var.replace("?", "") + end  
+
+    
+    SQLiteQuery += "FROM "
+    i = 1
+    while i <= len(parsedTriples):
+        end = "\n" if i == lineNum - 1 else ", "
+        SQLiteQuery += "triples t" + str(i) + end
+        i += 1
+
+    # a string with all the and statements that go table.{s,p,o} = URI
+    andStatements = "\n"
+    belongsToTable = 1
+    for triple in parsedTriples:
+        for part in triple:
+            # Skip any variables, only parsing literals and uris, variables are later
+            if part.startswith("?"):
+                continue
+            end = "" if triple.index(part) == len(triple) else "\n"
+            andStatements += "AND "
+            andStatements += "t" + str(belongsToTable) + "." + partsOfTriple[triple.index(part)] + " = " + part + end
+        
+        belongsToTable += 1
+    
+    # print("\nThese are the and statements with URIs and literals")
+    # print(andStatements)
+    # print()
+
+    # SQLiteQuery += "WHERE "
+    whereStatement = True
+    writtenVars = []
+    for var in variableUsageDict:
+        writtenVars.append(var)
+        beginning = "WHERE " if whereStatement or var == variableUsageDict[var][-1] else "AND "
+        endLine = "\n" if var not in writtenVars or whereStatement else ""
+        whereStatement = False
+        SQLiteQuery += beginning
+        i = 0
+        while i <= len(variableUsageDict[var]) - 1:
+            # print(variableUsageDict[var][i])
+            endVars = "" if i == len(variableUsageDict[var]) - 1 else "\n"
+            if i == 0:
+                firstEquals = "t" + variableUsageDict[var][i][0] + "." + variableUsageDict[var][i][1]
+            else: 
+                if (i >= 2):
+                    SQLiteQuery += "AND "
+                SQLiteQuery += firstEquals + " = " + "t" + variableUsageDict[var][i][0] + "." + variableUsageDict[var][i][1] + endVars
+            i += 1 
+        SQLiteQuery += endLine
+        # if len(variableUsageDict[var]) > 1:
+        #     for usage in variableUsageDict[var]:
+        #         end = "\n" if variableUsageDict[var].index(usage) == len(variableUsageDict[var]) - 1 else " "
+        #         SQLiteQuery += 
+
+        #         end = "\n" if variableUsageDict[var].index(equalsUsage) == len(variableUsageDict[var]) - 1 else ""
+        #         SQLiteQuery += "t" + usage[0] + "." + usage[1] + " = " + "t" + equalsUsage[0] + "." + equalsUsage[1] + end
+
+    SQLiteQuery += andStatements
+                
+    return SQLiteQuery
+    
+
 
 
 
