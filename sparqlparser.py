@@ -1,6 +1,5 @@
 import re
 import shlex
-from q9.py import dbPath
 from rdfparser import detectPrefix, multiple_replace, prefixDict
 
 
@@ -205,7 +204,7 @@ def writeSQL(dbPath):
                 continue
             end = "" if triple.index(part) == len(triple) else "\n"
             andStatements += "AND "
-            andStatements += "t" + str(belongsToTable) + "." + partsOfTriple[triple.index(part)] + " = " + "\"" + part + "\"" + end
+            andStatements += "t" + str(belongsToTable) + "." + partsOfTriple[triple.index(part)] + " = " + "'" + part + "'" + end
         
         belongsToTable += 1
     

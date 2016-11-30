@@ -3,18 +3,46 @@ import sys
 from sparqlparser import parseSPARQL, writeSQL 
 import sqlite3
 
-def checkNumber(str):
+# returns (boolean, value) of a converted string to a number 
+# The bool represents if the conversion was successful
+def getNumeric( string ):
+    try:
+        value, int( string )
+        return True, value
+    except:
+        pass # do nothing
+        
+    try:
+        value = float( string )
+        return True, value
+    except:
+        return False, string
+        
+def switchCond( var1, cond, var2 ):
+    if cond == "=":
+        return var1 == var2
+    elif cond == ">":
+        return var1 > var2
+    elif cond == "<":
+        return var1 < var2
+    elif cond == "<=":
+        return var1 <= var2
+    elif cond == ">=":
+        return var1 >= var2
+    elif cond == "!=":
+        return var1 != var2
     
 
-def filterFunc(var, operator, condition):
+def filterFunc(var1, operator, var2):
     if operator == "REGEX":
-        if re.search(condition, var):
-            return True
-    elif operator == "<":
-        checkNumber(var)
-        return 
-        
-        
+        return re.search(var2, var1)
+
+    isNum1, val1, isNum2, val2 = getNumeric( var1 ), getNumeric( var2 )
+    
+    if (isNum1 and isNum2):
+        return switchCond( val1, operator, val2 )
+    else:
+        return switchCond( var1, operator, var2)
 
 def main():
     if len(sys.argv) != 3:
@@ -46,7 +74,7 @@ def main():
     print(SQLparsedQuery)
 
     conn = sqlite3.connect(dbPath)
-    conn.creat_function("FILTER", 3, filterFunc)
+    conn.create_function("FILTER", 3, filterFunc)
     curs = conn.cursor()
     curs.execute(SQLparsedQuery)
     result = curs.fetchall()
